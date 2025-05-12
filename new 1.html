@@ -1,0 +1,1295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<title>MiniGeo Advanced - Interactive Geometry & Function Plotter</title>
+<style>
+  * {
+    box-sizing: border-box;
+  }
+  body, html {
+    margin:0; padding:0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: #1e1e2f;
+    color: #eee;
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  header {
+    background: #27293d;
+    padding: 0.75em 1em;
+    text-align: center;
+    font-weight: 700;
+    font-size: 1.5rem;
+    user-select:none;
+    border-bottom: 2px solid #444661;
+  }
+
+  main {
+    flex: 1;
+    display: flex;
+    height: 100%;
+    overflow: hidden;
+  }
+
+  #sidebar {
+    width: 320px;
+    background: #2a2c43;
+    border-right: 2px solid #444661;
+    display: flex;
+    flex-direction: column;
+    padding: 1em 1.5em 0 1.5em;
+    overflow-y: auto;
+  }
+  #sidebar h2 {
+    font-size: 1.2rem;
+    margin-bottom: 0.75em;
+    color: #88c0d0;
+    user-select:none;
+  }
+  label {
+    margin-top: 1em;
+    font-weight: 600;
+    font-size: 1rem;
+    display: block;
+    user-select:none;
+  }
+  input[type="text"], input[type="number"] {
+    width: 100%;
+    padding: 0.4em 0.7em;
+    margin-top: 0.25em;
+    border-radius: 5px;
+    border: none;
+    font-size: 1rem;
+    font-family: monospace;
+    background: #3b4252;
+    color: #eee;
+  }
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  button {
+    margin-top: 1em;
+    background: #88c0d0;
+    color: #1e1e2f;
+    font-weight: 700;
+    border:none;
+    padding: 0.6em 1.2em;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.25s ease;
+    user-select:none;
+  }
+  button:hover {
+    background: #5a9dbf;
+  }
+  button:disabled, button[disabled] {
+    background: #555f71;
+    cursor: not-allowed;
+  }
+
+  #canvas-container {
+    flex: 1;
+    position: relative;
+    background: #161624;
+    touch-action: none;
+  }
+
+  canvas {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    height: 100%;
+    width: 100%;
+    display: block;
+    background-color: #ffffff;
+  }
+
+  #info {
+    margin-top: auto;
+    font-size: 0.8rem;
+    color: #8899aa;
+    user-select:none;
+    padding-bottom: 1em;
+  }
+
+  #functions-legend {
+    margin-top: 1em;
+    max-height: 130px;
+    overflow-y: auto;
+    border-top: 1px solid #444661;
+    padding-top: 0.5em;
+  }
+  #functions-legend p {
+    margin: 0.25em 0;
+    font-family: monospace;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    user-select:none;
+  }
+  .func-color-box {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    margin-right: 0.7em;
+    border-radius: 3px;
+    border: 1.5px solid #2e3440;
+  }
+
+  /* New styling for add point coordinate input UI */
+  #point-input-container {
+    margin-top: 1em;
+    padding: 0.7em 1em;
+    background-color: #3b4252;
+    border-radius: 6px;
+    display: none;
+    flex-direction: column;
+    user-select:none;
+  }
+  #point-input-container label {
+    font-weight: 600;
+    margin-top: 0;
+    margin-bottom: 0.1em;
+    font-size: 0.95rem;
+  }
+  #point-input-container input {
+    margin-top: 0;
+  }
+  #add-point-confirm-btn {
+    margin-top: 0.8em;
+    background: #a3be8c;
+    color: #1e1e2f;
+    font-weight: 700;
+    border: none;
+    padding: 0.5em 1em;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.25s ease;
+    user-select:none;
+  }
+  #add-point-confirm-btn:hover {
+    background: #8fae73;
+  }
+
+  /* Adjust geometry tools buttons layout for better grouping */
+  #geometry-tool-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5em;
+  }
+  #geometry-tool-buttons button {
+    flex: 1 1 calc(50% - 0.5em);
+    margin-top: 0;
+    font-size: 0.9rem;
+    min-width: 120px;
+  }
+
+  @media (max-width: 480px) {
+    #sidebar {
+      width: 100%;
+      height: 320px;
+      border-right: none;
+      border-bottom: 2px solid #444661;
+      padding-bottom: 0.6em;
+      overflow-y: auto;
+    }
+    main {
+      flex-direction: column-reverse;
+    }
+    #canvas-container {
+      height: calc(100% - 320px);
+    }
+    #geometry-tool-buttons button {
+      flex: 1 1 100%;
+      min-width: auto;
+    }
+    #point-input-container {
+      padding: 0.5em 0.7em;
+    }
+  }
+</style>
+</head>
+<body>
+<header>MiniGeo Advanced: Interactive Geometry & Function Plotter</header>
+<main>
+  <aside id="sidebar" aria-label="Controls">
+    <h2>Geometry Tools</h2>
+    <div id="geometry-tool-buttons">
+      <button id="add-point-btn" aria-pressed="false" aria-label="Add a movable point">Add Point</button>
+      <button id="add-line-btn" aria-pressed="false" aria-label="Add a line between two points">Add Line</button>
+      <button id="add-circle-btn" aria-pressed="false" aria-label="Add a circle from two points">Add Circle</button>
+      <button id="add-polygon-btn" aria-pressed="false" aria-label="Add a polygon by selecting points">Add Polygon</button>
+      <button id="add-segment-btn" aria-pressed="false" aria-label="Add a segment between two points">Add Segment</button>
+    </div>
+
+    <div id="point-input-container" aria-live="polite" aria-atomic="true">
+      <label for="point-x-input">X coordinate:</label>
+      <input type="number" id="point-x-input" step="0.01" aria-label="X coordinate for new point" />
+      <label for="point-y-input">Y coordinate:</label>
+      <input type="number" id="point-y-input" step="0.01" aria-label="Y coordinate for new point" />
+      <button id="add-point-confirm-btn">Add Point</button>
+    </div>
+
+    <button id="undo-btn" aria-label="Undo last action" disabled>Undo</button>
+    <button id="redo-btn" aria-label="Redo last undone action" disabled>Redo</button>
+    <button id="clear-geometry-btn" aria-label="Clear all geometry">Clear Geometry</button>
+    
+    <h2>Function Plotter</h2>
+    <label for="function-input">f(x) =</label>
+    <input type="text" id="function-input" placeholder="e.g. sin(x), x^2 + 3*x - 5" aria-label="Function input" />
+    <button id="plot-func-btn">Plot Function</button>
+    <button id="clear-func-btn">Clear Functions</button>
+    <div id="functions-legend" aria-label="Function legend"></div>
+
+    <h2>Grid & View</h2>
+    <label><input type="checkbox" id="grid-toggle" checked /> Show Grid</label>
+    <label for="grid-size">Grid size (units):</label>
+    <input type="number" id="grid-size" value="1" min="0.1" step="0.1" />
+    <button id="reset-view-btn" aria-label="Reset zoom and pan">Reset View</button>
+
+    <h2>Selected Point Coordinates</h2>
+    <label for="coord-x">X:</label>
+    <input type="number" id="coord-x" step="0.01" />
+    <label for="coord-y">Y:</label>
+    <input type="number" id="coord-y" step="0.01" />
+    <button id="update-point-btn">Update Point</button>
+
+    <div id="info" aria-live="polite" aria-atomic="true" style="margin-top:10px;">
+      <p>Use the tools above to construct and manipulate geometry and plot functions.</p>
+      <p>Drag points to move them. Use mouse wheel or pinch to zoom. Drag background to pan.</p>
+      <p id="selection-info" style="color:#bf616a; font-weight:600;"></p>
+    </div>
+  </aside>
+  <section id="canvas-container" role="img" aria-label="Interactive geometry and graphing canvas">
+    <canvas id="geo-canvas" tabindex="0" aria-label="Geometry and function plotting canvas"></canvas>
+  </section>
+</main>
+<script>
+(() => {
+  const canvas = document.getElementById('geo-canvas');
+  const ctx = canvas.getContext('2d');
+
+  function resizeCanvas() {
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = canvas.clientWidth * dpr;
+    canvas.height = canvas.clientHeight * dpr;
+    ctx.setTransform(1,0,0,1,0,0);
+    ctx.scale(dpr,dpr);
+  }
+  window.addEventListener('resize', () => {
+    resizeCanvas();
+    draw();
+  });
+  resizeCanvas();
+
+  let points = [];
+  let lines = [];
+  let circles = [];
+  let polygons = [];
+  let segments = [];
+  let functions = [];
+
+  let mode = null;
+  let draggingPointIndex = -1;
+  let selectedPointsForLine = [];
+  let selectedPointsForCircle = [];
+  let selectedPointsForPolygon = [];
+  let selectedPointsForSegment = [];
+
+  let pan = {x:0, y:0};
+  let zoom = 15;
+  let draggingCanvas = false;
+  let dragStart = null;
+  let longPressTimeout = null;
+  let isLongPress = false;
+
+  const history = [];
+  let historyIndex = -1;
+
+  const btnAddPoint = document.getElementById('add-point-btn');
+  const btnAddLine = document.getElementById('add-line-btn');
+  const btnAddCircle = document.getElementById('add-circle-btn');
+  const btnAddPolygon = document.getElementById('add-polygon-btn');
+  const btnAddSegment = document.getElementById('add-segment-btn');
+  const btnUndo = document.getElementById('undo-btn');
+  const btnRedo = document.getElementById('redo-btn');
+  const btnClearGeometry = document.getElementById('clear-geometry-btn');
+  const inpFunction = document.getElementById('function-input');
+  const btnPlotFunc = document.getElementById('plot-func-btn');
+  const btnClearFunc = document.getElementById('clear-func-btn');
+  const functionsLegend = document.getElementById('functions-legend');
+  const gridToggle = document.getElementById('grid-toggle');
+  const gridSizeInput = document.getElementById('grid-size');
+  const resetViewBtn = document.getElementById('reset-view-btn');
+  const coordXInput = document.getElementById('coord-x');
+  const coordYInput = document.getElementById('coord-y');
+  const updatePointBtn = document.getElementById('update-point-btn');
+  const selectionInfo = document.getElementById('selection-info');
+
+  const pointInputContainer = document.getElementById('point-input-container');
+  const pointXInput = document.getElementById('point-x-input');
+  const pointYInput = document.getElementById('point-y-input');
+  const addPointConfirmBtn = document.getElementById('add-point-confirm-btn');
+
+  let selectedPointIndex = -1;
+
+  function saveHistory() {
+    const snapshot = JSON.stringify({
+      points: points.map(p => ({x: p.x, y: p.y, label: p.label})),
+      lines: lines.map(l => ({p1Index: l.p1Index, p2Index: l.p2Index})),
+      circles: circles.map(c => ({centerIndex: c.centerIndex, pointOnCircIndex: c.pointOnCircIndex})),
+      polygons: polygons.map(pg => ({pointIndices: [...pg.pointIndices]})),
+      segments: segments.map(s => ({p1Index: s.p1Index, p2Index: s.p2Index})),
+      functions: functions.map(f => ({expr: f.expr, color: f.color}))
+    });
+    if(historyIndex < history.length-1) history.splice(historyIndex+1);
+    history.push(snapshot);
+    historyIndex++;
+    updateUndoRedoButtons();
+  }
+  function loadHistory(index) {
+    if(index < 0 || index >= history.length) return;
+    const snapshot = JSON.parse(history[index]);
+    points = snapshot.points;
+    lines = snapshot.lines;
+    circles = snapshot.circles;
+    polygons = snapshot.polygons;
+    segments = snapshot.segments || [];
+    functions = [];
+    for(const f of snapshot.functions){
+      try {
+        const fn = parseFunction(f.expr);
+        functions.push({expr: f.expr, fn, color: f.color});
+      } catch {
+        // skip invalid functions in history (should rarely happen)
+      }
+    }
+    mode = null;
+    selectedPointsForLine = [];
+    selectedPointsForCircle = [];
+    selectedPointsForPolygon = [];
+    selectedPointsForSegment = [];
+    selectedPointIndex = -1;
+    updateSelectionInfo('');
+    updateCoordInputs();
+    draw();
+    updateUndoRedoButtons();
+  }
+  function updateUndoRedoButtons(){
+    btnUndo.disabled = historyIndex <= 0;
+    btnRedo.disabled = historyIndex >= history.length -1;
+  }
+
+  function toCanvasX(x) { return canvas.width/2/ (window.devicePixelRatio || 1) + (x + pan.x)*zoom; }
+  function toCanvasY(y) { return canvas.height/2/ (window.devicePixelRatio || 1) - (y + pan.y)*zoom; }
+  function toMathX(cx) { return (cx - canvas.width/2/ (window.devicePixelRatio || 1))/zoom - pan.x; }
+  function toMathY(cy) { return (canvas.height/2/ (window.devicePixelRatio || 1) - cy)/zoom - pan.y; }
+
+  function drawGrid(){
+    ctx.clearRect(0,0,canvas.width, canvas.height);
+    if(!gridToggle.checked) return;
+
+    const step = parseFloat(gridSizeInput.value) || 1;
+    const gridColor = '#e0e0e0';
+    const labelColor = '#333333';
+    ctx.lineWidth = 0.5;
+
+    const left = Math.floor(toMathX(0));
+    const right = Math.ceil(toMathX(canvas.width/ (window.devicePixelRatio || 1)));
+    const bottom = Math.floor(toMathY(canvas.height/ (window.devicePixelRatio || 1)));
+    const top = Math.ceil(toMathY(0));
+
+    // Adjust grid line start/end points to align with step
+    const startX = Math.floor(left/step) * step;
+    const endX = Math.ceil(right/step) * step;
+    const startY = Math.floor(bottom/step) * step;
+    const endY = Math.ceil(top/step) * step;
+
+    // Draw minor grid lines
+    ctx.strokeStyle = '#f0f0f0';
+    for(let x = startX; x <= endX; x += step/4){
+      const cx = toCanvasX(x);
+      ctx.beginPath();
+      ctx.moveTo(cx, 0);
+      ctx.lineTo(cx, canvas.height/ (window.devicePixelRatio || 1));
+      ctx.stroke();
+    }
+    
+    for(let y = startY; y <= endY; y += step/4){
+      const cy = toCanvasY(y);
+      ctx.beginPath();
+      ctx.moveTo(0, cy);
+      ctx.lineTo(canvas.width/ (window.devicePixelRatio || 1), cy);
+      ctx.stroke();
+    }
+
+    // Draw major grid lines and numbers
+    ctx.strokeStyle = gridColor;
+    ctx.lineWidth = 1;
+
+    const originX = toCanvasX(0);
+    const originY = toCanvasY(0);
+    
+    // Draw X-axis numbers and major grid lines
+    for(let x = startX; x <= endX; x += step){
+      const cx = toCanvasX(x);
+      ctx.beginPath();
+      ctx.moveTo(cx, 0);
+      ctx.lineTo(cx, canvas.height/ (window.devicePixelRatio || 1));
+      ctx.stroke();
+      
+      if(Math.abs(x) > 1e-6){
+        ctx.fillStyle = labelColor;
+        ctx.font = '11px monospace';
+        ctx.textAlign = 'center';
+        const labelY = Math.min(Math.max(originY + 15, 15), canvas.height/ (window.devicePixelRatio || 1) - 5);
+        ctx.fillText(Math.round(x), cx, labelY);
+      }
+    }
+
+    // Draw Y-axis numbers and major grid lines
+    for(let y = startY; y <= endY; y += step){
+      const cy = toCanvasY(y);
+      ctx.beginPath();
+      ctx.moveTo(0, cy);
+      ctx.lineTo(canvas.width/ (window.devicePixelRatio || 1), cy);
+      ctx.stroke();
+      
+      if(Math.abs(y) > 1e-6){
+        ctx.fillStyle = labelColor;
+        ctx.font = '11px monospace';
+        ctx.textAlign = 'right';
+        const labelX = Math.min(Math.max(originX - 5, 35), canvas.width/ (window.devicePixelRatio || 1) - 5);
+        ctx.fillText(Math.round(y), labelX, cy + 4);
+      }
+    }
+
+    // Draw axes
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = '#2196F3';
+    ctx.beginPath();
+    ctx.moveTo(originX, 0);
+    ctx.lineTo(originX, canvas.height/ (window.devicePixelRatio || 1));
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(0, originY);
+    ctx.lineTo(canvas.width/ (window.devicePixelRatio || 1), originY);
+    ctx.stroke();
+
+    // Draw axis labels
+    ctx.fillStyle = '#2196F3';
+    ctx.font = 'bold 12px monospace';
+    ctx.textAlign = 'right';
+    ctx.fillText('Y', Math.min(Math.max(originX - 10, 20), canvas.width/ (window.devicePixelRatio || 1) - 20), 20);
+    ctx.fillText('X', canvas.width/ (window.devicePixelRatio || 1) - 20, Math.min(Math.max(originY - 10, 20), canvas.height/ (window.devicePixelRatio || 1) - 20));
+  }
+
+  function drawPoint(pt, highlight = false){
+    const x = toCanvasX(pt.x);
+    const y = toCanvasY(pt.y);
+    ctx.beginPath();
+    ctx.fillStyle = highlight ? '#bf616a' : '#88c0d0';
+    ctx.strokeStyle = '#2e3440';
+    ctx.lineWidth = 2;
+    ctx.arc(x,y,7,0,Math.PI*2);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.font = '12px Segoe UI, monospace';
+    ctx.fillStyle = '#d8dee9';
+    ctx.textAlign = 'center';
+    ctx.fillText(`(${pt.x.toFixed(2)}, ${pt.y.toFixed(2)})`, x, y - 12);
+
+    if(pt.label){
+      ctx.font = 'bold 14px Segoe UI, sans-serif';
+      ctx.fillStyle = '#d8dee9';
+      ctx.fillText(pt.label, x + 10, y - 10);
+    }
+  }
+
+  function drawLine(line){
+    if(line.p1Index < 0 || line.p2Index < 0) return;
+    const p1 = points[line.p1Index];
+    const p2 = points[line.p2Index];
+    if(!p1 || !p2) return;
+
+    // Draw infinite line across canvas - extend beyond points
+
+    const canvasWidth = canvas.width / (window.devicePixelRatio || 1);
+    const canvasHeight = canvas.height / (window.devicePixelRatio || 1);
+
+    const x1 = p1.x;
+    const y1 = p1.y;
+    const x2 = p2.x;
+    const y2 = p2.y;
+
+    // Compute slope
+    const dx = x2 - x1;
+    const dy = y2 - y1;
+
+    // Infinite line: find intersection with canvas borders in world coords
+
+    // Line equation: y = m x + b if dx !=0 else vertical line x = x1
+
+    let linePoints = [];
+
+    if(Math.abs(dx) < 1e-10){
+      // Vertical line x = x1
+      // intersect with canvas top and bottom  y = min and y = max
+      const yMin = toMathY(canvasHeight);
+      const yMax = toMathY(0);
+      linePoints = [{x:x1, y:yMin}, {x:x1, y:yMax}];
+    } else {
+      const m = dy / dx;
+      const b = y1 - m*x1;
+
+      // Calculate intersections with viewport boundaries in world coords
+      // Left border x = leftX, y = m*leftX + b
+      // Right border x = rightX, y = m*rightX + b
+      // Top border y = topY, x = (topY - b) / m
+      // Bottom border y = bottomY, x = (bottomY - b) / m
+
+      const leftX = toMathX(0);
+      const rightX = toMathX(canvasWidth);
+      const topY = toMathY(0);
+      const bottomY = toMathY(canvasHeight);
+
+      // y at left and right
+      let yLeft = m*leftX + b;
+      let yRight = m*rightX + b;
+
+      // x at top and bottom
+      let xTop = (topY - b)/m;
+      let xBottom = (bottomY - b)/m;
+
+      let candidates = [];
+
+      // Check which intersection points are within viewport bounds
+
+      if(yLeft >= bottomY && yLeft <= topY){
+        candidates.push({x:leftX, y:yLeft});
+      }
+      if(yRight >= bottomY && yRight <= topY){
+        candidates.push({x:rightX, y:yRight});
+      }
+      if(xTop >= leftX && xTop <= rightX){
+        candidates.push({x:xTop, y:topY});
+      }
+      if(xBottom >= leftX && xBottom <= rightX){
+        candidates.push({x:xBottom, y:bottomY});
+      }
+
+      // We expect at least 2 intersection points, take first two
+      if(candidates.length >= 2){
+        linePoints = [candidates[0], candidates[1]];
+      } else {
+        // Fallback: draw segment between the two points only
+        linePoints = [p1, p2];
+      }
+    }
+
+    const cx1 = toCanvasX(linePoints[0].x);
+    const cy1 = toCanvasY(linePoints[0].y);
+    const cx2 = toCanvasX(linePoints[1].x);
+    const cy2 = toCanvasY(linePoints[1].y);
+
+    ctx.beginPath();
+    ctx.strokeStyle = '#81a1c1';
+    ctx.lineWidth = 2;
+    ctx.moveTo(cx1, cy1);
+    ctx.lineTo(cx2, cy2);
+    ctx.stroke();
+
+    // Draw equation centered at midpoint between p1 and p2 (not infinite line midpoint)
+    const eqText = getLineEquation(p1, p2);
+    if(eqText){
+      const mx = (toCanvasX(p1.x) + toCanvasX(p2.x))/2 + 10;
+      const my = (toCanvasY(p1.y) + toCanvasY(p2.y))/2;
+      ctx.font = '13px Segoe UI, monospace';
+      ctx.fillStyle = '#81a1c1';
+      ctx.fillText(eqText, mx, my);
+    }
+  }
+
+  function drawSegment(segment){
+    if(segment.p1Index < 0 || segment.p2Index < 0) return;
+    const p1 = points[segment.p1Index];
+    const p2 = points[segment.p2Index];
+    if(!p1 || !p2) return;
+    const x1 = toCanvasX(p1.x);
+    const y1 = toCanvasY(p1.y);
+    const x2 = toCanvasX(p2.x);
+    const y2 = toCanvasY(p2.y);
+
+    ctx.beginPath();
+    ctx.strokeStyle = '#a3be8c';
+    ctx.lineWidth = 3;
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.stroke();
+
+    // Draw equation near midpoint
+    const eqText = getLineEquation(p1, p2);
+    if(eqText){
+      const mx = (x1 + x2)/2 + 10;
+      const my = (y1 + y2)/2 + 15;
+      ctx.font = '13px Segoe UI, monospace';
+      ctx.fillStyle = '#a3be8c';
+      ctx.fillText(eqText, mx, my);
+    }
+  }
+
+  function drawCircle(circle){
+    if(circle.centerIndex < 0 || circle.pointOnCircIndex < 0) return;
+    const center = points[circle.centerIndex];
+    const pointOnCirc = points[circle.pointOnCircIndex];
+    if(!center || !pointOnCirc) return;
+    const cx = toCanvasX(center.x);
+    const cy = toCanvasY(center.y);
+    const radius = Math.sqrt(Math.pow(toCanvasX(pointOnCirc.x) - cx,2)+Math.pow(toCanvasY(pointOnCirc.y) - cy,2));
+    ctx.beginPath();
+    ctx.strokeStyle = '#bf616a';
+    ctx.lineWidth = 2;
+    ctx.arc(cx, cy, radius, 0, 2*Math.PI);
+    ctx.stroke();
+
+    const eqText = getCircleEquation(center, pointOnCirc);
+    if(eqText){
+      ctx.font = '13px Segoe UI, monospace';
+      ctx.fillStyle = '#bf616a';
+      ctx.fillText(eqText, cx + radius + 5, cy);
+    }
+  }
+
+  function getLineEquation(p1, p2){
+    const dx = p2.x - p1.x;
+    const dy = p2.y - p1.y;
+    if(Math.abs(dx) < 1e-10){
+      return `x = ${p1.x.toFixed(2)}`;
+    }
+    const m = dy/dx;
+    let b = p1.y - m*p1.x;
+    if(Math.abs(b) < 1e-6) b = 0;
+    return `y = ${m.toFixed(2)}x ${b>=0 ? '+' : '-'} ${Math.abs(b).toFixed(2)}`;
+  }
+
+  function getCircleEquation(center, pointOnCirc){
+    const r = Math.sqrt((pointOnCirc.x - center.x)**2 + (pointOnCirc.y - center.y)**2);
+    return `(x - ${center.x.toFixed(2)})² + (y - ${center.y.toFixed(2)})² = ${r.toFixed(2)}²`;
+  }
+
+  function drawPolygon(polygon){
+    const pts = polygon.pointIndices.map(i => points[i]).filter(Boolean);
+    if(pts.length < 2) return;
+
+    ctx.beginPath();
+    ctx.strokeStyle = '#d08770';
+    ctx.lineWidth = 2;
+    pts.forEach((pt,i)=>{
+      const cx = toCanvasX(pt.x);
+      const cy = toCanvasY(pt.y);
+      if(i===0) ctx.moveTo(cx, cy);
+      else ctx.lineTo(cx, cy);
+    });
+    if(pts.length>2){
+      const first = pts[0];
+      ctx.lineTo(toCanvasX(first.x), toCanvasY(first.y));
+    }
+    ctx.stroke();
+    // Area label
+    const area = polygonArea(pts);
+    if(area != null){
+      const centroid = polygonCentroid(pts);
+      const cx = toCanvasX(centroid.x);
+      const cy = toCanvasY(centroid.y);
+      ctx.font = '13px Segoe UI, monospace';
+      ctx.fillStyle = '#d08770';
+      ctx.fillText('Area: '+area.toFixed(2), cx + 5, cy);
+    }
+  }
+  function polygonArea(points){
+    if(points.length<3) return null;
+    let area=0;
+    for(let i=0;i<points.length;i++){
+      let j=(i+1)%points.length;
+      area += points[i].x*points[j].y - points[j].x*points[i].y;
+    }
+    return Math.abs(area)/2;
+  }
+  function polygonCentroid(points){
+    let cx=0,cy=0,area=0;
+    for(let i=0;i<points.length;i++){
+      let j=(i+1)%points.length;
+      const f = points[i].x*points[j].y - points[j].x*points[i].y;
+      cx += (points[i].x + points[j].x) * f;
+      cy += (points[i].y + points[j].y) * f;
+      area += f;
+    }
+    area*=0.5;
+    cx/=(6*area);
+    cy/=(6*area);
+    return {x: cx, y: cy};
+  }
+
+  function drawFunctions(){
+    for(let i=0; i<functions.length;i++){
+      const fnObj=functions[i];
+      drawFunction(fnObj.fn, fnObj.color);
+    }
+  }
+  function drawFunction(fn,color='#a3be8c'){
+    ctx.beginPath();
+    ctx.lineWidth=2;
+    ctx.strokeStyle=color;
+    const stepPx=2;
+    let first=true;
+    for(let px=0; px<=canvas.width/ (window.devicePixelRatio || 1); px+= stepPx){
+      const x=toMathX(px);
+      let y;
+      try{
+        y=fn(x);
+        if(typeof y !== 'number' || isNaN(y) || !isFinite(y)){
+          first=true;
+          continue;
+        }
+      } catch{
+        first=true;
+        continue;
+      }
+      const py=toCanvasY(y);
+      if(first){
+        ctx.moveTo(px,py);
+        first=false;
+      } else{
+        ctx.lineTo(px, py);
+      }
+    }
+    ctx.stroke();
+  }
+
+  function draw(){
+    ctx.clearRect(0,0,canvas.width, canvas.height);
+    drawGrid();
+    drawFunctions();
+    polygons.forEach(drawPolygon);
+    circles.forEach(drawCircle);
+    segments.forEach(drawSegment);
+    lines.forEach(drawLine);
+    points.forEach((pt,i)=>{
+      const highlight = (
+        (mode === 'line' && selectedPointsForLine.includes(i)) ||
+        (mode === 'circle' && selectedPointsForCircle.includes(i)) ||
+        (mode === 'polygon' && selectedPointsForPolygon.includes(i)) ||
+        (mode === 'segment' && selectedPointsForSegment.includes(i)) ||
+        i === selectedPointIndex
+      );
+      drawPoint(pt, highlight);
+    });
+  }
+
+  function findPointNearCanvas(x,y){
+    const radius=14;
+    for(let i=0; i<points.length;i++){
+      const ptC={x: toCanvasX(points[i].x), y: toCanvasY(points[i].y)};
+      const distSq=(ptC.x-x)**2+(ptC.y-y)**2;
+      if(distSq<=radius*radius) return i;
+    }
+    return -1;
+  }
+
+  // Interaction Handlers
+  function onPointerDown(e){
+    e.preventDefault();
+    const rect=canvas.getBoundingClientRect();
+    const cx=(e.clientX || e.touches?.[0]?.clientX)-rect.left;
+    const cy=(e.clientY || e.touches?.[0]?.clientY)-rect.top;
+
+    if(e.pointerType === 'touch' && e.touches?.length > 1){
+      draggingCanvas=true;
+      dragStart={x:e.clientX, y:e.clientY, panX:pan.x, panY:pan.y};
+      return;
+    }
+
+    if(e.button === 1){
+      draggingCanvas=true;
+      dragStart={x:e.clientX, y:e.clientY, panX:pan.x, panY:pan.y};
+      return;
+    }
+
+    if(mode === 'point'){
+      // Disabled adding point by clicking canvas in point mode, only UI form allowed
+      return;
+    }
+
+    if(mode === 'line'){
+      const idx=findPointNearCanvas(cx,cy);
+      if(idx !==-1 && !selectedPointsForLine.includes(idx)){
+        selectedPointsForLine.push(idx);
+        updateSelectionInfo(`Selected points for line: ${selectedPointsForLine.length}/2`);
+        if(selectedPointsForLine.length===2){
+          lines.push({p1Index:selectedPointsForLine[0], p2Index:selectedPointsForLine[1]});
+          selectedPointsForLine=[];
+          saveHistory();
+          mode=null;
+          updateModeButtons();
+          updateSelectionInfo('Line added');
+        }
+        draw();
+      }
+      return;
+    }
+    if(mode === 'circle'){
+      const idx=findPointNearCanvas(cx,cy);
+      if(idx !== -1 && !selectedPointsForCircle.includes(idx)){
+        selectedPointsForCircle.push(idx);
+        updateSelectionInfo(`Selected points for circle: ${selectedPointsForCircle.length}/2`);
+        if(selectedPointsForCircle.length===2){
+          circles.push({centerIndex:selectedPointsForCircle[0], pointOnCircIndex:selectedPointsForCircle[1]});
+          selectedPointsForCircle=[];
+          saveHistory();
+          mode=null;
+          updateModeButtons();
+          updateSelectionInfo('Circle added');
+        }
+        draw();
+      }
+      return;
+    }
+    if(mode === 'polygon'){
+      const idx=findPointNearCanvas(cx,cy);
+      if(idx !== -1 && !selectedPointsForPolygon.includes(idx)){
+        selectedPointsForPolygon.push(idx);
+        updateSelectionInfo(`Selected points for polygon: ${selectedPointsForPolygon.length}`);
+        draw();
+      }
+      return;
+    }
+    if(mode === 'segment'){
+      const idx=findPointNearCanvas(cx,cy);
+      if(idx !==-1 && !selectedPointsForSegment.includes(idx)){
+        selectedPointsForSegment.push(idx);
+        updateSelectionInfo(`Selected points for segment: ${selectedPointsForSegment.length}/2`);
+        if(selectedPointsForSegment.length===2){
+          segments.push({p1Index:selectedPointsForSegment[0], p2Index:selectedPointsForSegment[1]});
+          selectedPointsForSegment=[];
+          saveHistory();
+          mode=null;
+          updateModeButtons();
+          updateSelectionInfo('Segment added');
+        }
+        draw();
+      }
+      return;
+    }
+
+    let idx=findPointNearCanvas(cx,cy);
+    if(idx !== -1){
+      draggingPointIndex=idx;
+      selectPoint(idx);
+    } else {
+      draggingCanvas=true;
+      dragStart={x:e.clientX, y:e.clientY, panX:pan.x, panY:pan.y};
+      selectPoint(-1);
+    }
+  }
+
+  function onPointerMove(e){
+    if(draggingPointIndex === -1 && !draggingCanvas) return;
+    e.preventDefault();
+    if(draggingCanvas){
+      const dx=e.clientX - dragStart.x;
+      const dy=e.clientY - dragStart.y;
+      pan.x=dragStart.panX + dx/zoom;
+      pan.y=dragStart.panY - dy/zoom;
+      draw();
+      return;
+    }
+    const rect=canvas.getBoundingClientRect();
+    const cx=(e.clientX || e.touches?.[0]?.clientX) - rect.left;
+    const cy=(e.clientY || e.touches?.[0]?.clientY) - rect.top;
+    const mx=toMathX(cx);
+    const my=toMathY(cy);
+    points[draggingPointIndex].x=mx;
+    points[draggingPointIndex].y=my;
+    updateCoordInputs();
+    saveHistory();
+    draw();
+  }
+
+  function onPointerUp(e){
+    draggingPointIndex = -1;
+    draggingCanvas = false;
+  }
+
+  function onWheel(e){
+    e.preventDefault();
+    const rect=canvas.getBoundingClientRect();
+    const cx=e.clientX - rect.left;
+    const cy=e.clientY - rect.top;
+    const oldZoom=zoom;
+    if(e.deltaY < 0) zoom *= 1.1;
+    else zoom /= 1.1;
+    zoom = Math.min(Math.max(zoom, 5), 300);
+
+    const mathXBefore = toMathX(cx);
+    const mathYBefore = toMathY(cy);
+    const mathXAfter = (cx - canvas.width/2/ (window.devicePixelRatio || 1))/zoom - pan.x;
+    const mathYAfter = (canvas.height/2/ (window.devicePixelRatio || 1) - cy)/zoom - pan.y;
+    pan.x += mathXBefore - mathXAfter;
+    pan.y += mathYBefore - mathYAfter;
+
+    draw();
+  }
+
+  function selectPoint(i){
+    selectedPointIndex = i;
+    if(i === -1){
+      coordXInput.value = '';
+      coordYInput.value = '';
+      updateSelectionInfo('');
+    } else {
+      const p = points[i];
+      coordXInput.value = p.x.toFixed(3);
+      coordYInput.value = p.y.toFixed(3);
+      updateSelectionInfo(`Selected point ${p.label || (i+1)}`);
+    }
+  }
+
+  function updateCoordInputs(){
+    if(selectedPointIndex === -1) {
+      coordXInput.value = '';
+      coordYInput.value = '';
+      return;
+    }
+    const p = points[selectedPointIndex];
+    coordXInput.value = p.x.toFixed(3);
+    coordYInput.value = p.y.toFixed(3);
+  }
+
+  function parseFunction(expr) {
+    const validChars = /^[0-9xX+\-*/^()., \t\n\rabsincostanqlepgr]+$/i;
+    if (!validChars.test(expr)) throw new Error('Invalid characters in function expression.');
+    let jsExpr = expr.toLowerCase().replace(/\^/g, '**');
+    ['sin','cos','tan','log','exp','sqrt','abs'].forEach(fn=>{
+      const re = new RegExp('\\b'+fn+'\\b', 'g');
+      jsExpr = jsExpr.replace(re, `Math.${fn}`);
+    });
+    jsExpr = jsExpr.replace(/\bln\b/g, 'Math.log');
+    return new Function('x', `return ${jsExpr};`);
+  }
+
+  function updateFunctionLegend(){
+    functionsLegend.innerHTML = '';
+    if(functions.length === 0) return;
+    functions.forEach(({expr,color}, i) => {
+      const p = document.createElement('p');
+      p.innerHTML = `<span class="func-color-box" style="background:${color}"></span>f${i+1}(x) = ${expr}`;
+      functionsLegend.appendChild(p);
+    });
+  }
+
+  // Point mode: show input form for coordinates
+  btnAddPoint.addEventListener('click', () => {
+    if(mode !== 'point'){
+      mode = 'point';
+      pointInputContainer.style.display = 'flex';
+      pointXInput.value = '';
+      pointYInput.value = '';
+      updateSelectionInfo('Enter coordinates and click "Add Point"');
+    } else {
+      mode = null;
+      pointInputContainer.style.display = 'none';
+      updateSelectionInfo('');
+    }
+    selectedPointsForLine = [];
+    selectedPointsForCircle = [];
+    selectedPointsForPolygon = [];
+    selectedPointsForSegment = [];
+    updateModeButtons();
+  });
+
+  addPointConfirmBtn.addEventListener('click', () => {
+    const x = parseFloat(pointXInput.value);
+    const y = parseFloat(pointYInput.value);
+    if(isNaN(x) || isNaN(y)) {
+      alert('Please enter valid coordinates.');
+      return;
+    }
+    points.push({x, y, label: `P${points.length+1}`});
+    saveHistory();
+    draw();
+    pointXInput.value = '';
+    pointYInput.value = '';
+    updateSelectionInfo('Point added. Enter new coordinates or click "Add Point" to exit.');
+  });
+
+  btnAddLine.addEventListener('click', () => {
+    if(mode !== 'line'){
+      mode = 'line';
+      selectedPointsForLine = [];
+      selectedPointsForCircle = [];
+      selectedPointsForPolygon = [];
+      selectedPointsForSegment = [];
+      pointInputContainer.style.display = 'none';
+      updateSelectionInfo('Select two points for the line by clicking them');
+    } else {
+      mode = null;
+      selectedPointsForLine = [];
+      updateSelectionInfo('');
+    }
+    updateModeButtons();
+  });
+
+  btnAddCircle.addEventListener('click', () => {
+    if(mode !== 'circle'){
+      mode = 'circle';
+      selectedPointsForCircle = [];
+      selectedPointsForLine = [];
+      selectedPointsForPolygon = [];
+      selectedPointsForSegment = [];
+      pointInputContainer.style.display = 'none';
+      updateSelectionInfo('Select two points for the circle by clicking them');
+    } else {
+      mode = null;
+      selectedPointsForCircle = [];
+      updateSelectionInfo('');
+    }
+    updateModeButtons();
+  });
+
+  btnAddPolygon.addEventListener('click', () => {
+    if(mode === 'polygon' && selectedPointsForPolygon.length >=3){
+      polygons.push({pointIndices: [...selectedPointsForPolygon]});
+      selectedPointsForPolygon = [];
+      saveHistory();
+      updateSelectionInfo('Polygon added');
+      mode = null;
+      updateModeButtons();
+      draw();
+      return;
+    }
+    if(mode !== 'polygon'){
+      mode = 'polygon';
+      selectedPointsForPolygon = [];
+      selectedPointsForLine = [];
+      selectedPointsForCircle = [];
+      selectedPointsForSegment = [];
+      pointInputContainer.style.display = 'none';
+      updateSelectionInfo('Select points for polygon by clicking. Click "Add Polygon" again to finish.');
+    } else {
+      mode = null;
+      selectedPointsForPolygon = [];
+      updateSelectionInfo('');
+    }
+    updateModeButtons();
+  });
+
+  btnAddSegment.addEventListener('click', () => {
+    if(mode !== 'segment'){
+      mode = 'segment';
+      selectedPointsForSegment = [];
+      selectedPointsForLine = [];
+      selectedPointsForCircle = [];
+      selectedPointsForPolygon = [];
+      pointInputContainer.style.display = 'none';
+      updateSelectionInfo('Select two points for the segment by clicking them');
+    } else {
+      mode = null;
+      selectedPointsForSegment = [];
+      updateSelectionInfo('');
+    }
+    updateModeButtons();
+  });
+
+
+  btnUndo.addEventListener('click', () => {
+    if(historyIndex > 0){
+      historyIndex--;
+      loadHistory(historyIndex);
+    }
+  });
+
+  btnRedo.addEventListener('click', () => {
+    if(historyIndex < history.length -1){
+      historyIndex++;
+      loadHistory(historyIndex);
+    }
+  });
+
+  btnClearGeometry.addEventListener('click', () => {
+    points = [];
+    lines = [];
+    circles = [];
+    polygons = [];
+    segments = [];
+    selectedPointsForLine = [];
+    selectedPointsForCircle = [];
+    selectedPointsForPolygon = [];
+    selectedPointsForSegment = [];
+    mode = null;
+    pointInputContainer.style.display = 'none';
+    selectPoint(-1);
+    updateModeButtons();
+    updateSelectionInfo('Geometry cleared');
+    saveHistory();
+    draw();
+  });
+
+  btnPlotFunc.addEventListener('click', () => {
+    const expr = inpFunction.value.trim();
+    if(!expr.length){
+      alert('Please enter a function expression.');
+      return;
+    }
+    try{
+      const fn = parseFunction(expr);
+      const color = `hsl(${Math.floor(Math.random()*360)}, 70%, 70%)`;
+      functions.push({expr, fn, color});
+      updateFunctionLegend();
+      inpFunction.value = '';
+      saveHistory();
+      draw();
+    }catch(e){
+      alert('Invalid function expression: ' + e.message);
+    }
+  });
+
+  btnClearFunc.addEventListener('click', () => {
+    functions = [];
+    updateFunctionLegend();
+    saveHistory();
+    draw();
+  });
+
+  updatePointBtn.addEventListener('click', () => {
+    if(selectedPointIndex === -1) return;
+    const x = parseFloat(coordXInput.value);
+    const y = parseFloat(coordYInput.value);
+    if(isNaN(x) || isNaN(y)) {
+      alert('Invalid coordinate values');
+      return;
+    }
+    points[selectedPointIndex].x = x;
+    points[selectedPointIndex].y = y;
+    saveHistory();
+    draw();
+  });
+
+  resetViewBtn.addEventListener('click', () => {
+    pan = {x:0, y:0};
+    zoom = 15;
+    draw();
+  });
+
+  gridToggle.addEventListener('change', draw);
+  gridSizeInput.addEventListener('input', draw);
+
+  canvas.addEventListener('pointerdown', onPointerDown);
+  canvas.addEventListener('pointermove', onPointerMove);
+  canvas.addEventListener('pointerup', onPointerUp);
+  canvas.addEventListener('pointercancel', onPointerUp);
+  canvas.addEventListener('wheel', onWheel, {passive:false});
+
+  canvas.addEventListener('mousedown', (e) => {
+    if (e.button === 0) { // Left click
+      longPressTimeout = setTimeout(() => {
+        isLongPress = true;
+        draggingCanvas = true;
+        dragStart = { x: e.clientX, y: e.clientY };
+        canvas.style.cursor = 'grabbing';
+      }, 500); // 500ms for long press
+    }
+  });
+
+  canvas.addEventListener('mousemove', (e) => {
+    if (draggingCanvas && isLongPress) {
+      const dx = e.clientX - dragStart.x;
+      const dy = e.clientY - dragStart.y;
+      pan.x += dx/zoom;
+      pan.y -= dy/zoom;
+      dragStart = { x: e.clientX, y: e.clientY };
+      draw();
+    }
+  });
+
+  canvas.addEventListener('mouseup', () => {
+    clearTimeout(longPressTimeout);
+    draggingCanvas = false;
+    isLongPress = false;
+    canvas.style.cursor = 'default';
+  });
+
+  canvas.addEventListener('mouseleave', () => {
+    clearTimeout(longPressTimeout);
+    draggingCanvas = false;
+    isLongPress = false;
+    canvas.style.cursor = 'default';
+  });
+
+  canvas.addEventListener('click', (e) => {
+    if (isLongPress) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const x = (e.clientX - rect.left) * (window.devicePixelRatio || 1);
+    const y = (e.clientY - rect.top) * (window.devicePixelRatio || 1);
+    const mathX = toMathX(x);
+    const mathY = toMathY(y);
+
+    if (mode === 'line' || mode === 'segment') {
+      const clickedPointIndex = findPointNear(mathX, mathY);
+      if (clickedPointIndex >= 0) {
+        if (mode === 'line') {
+          selectedPointsForLine.push(clickedPointIndex);
+          if (selectedPointsForLine.length === 2) {
+            lines.push({
+              p1Index: selectedPointsForLine[0],
+              p2Index: selectedPointsForLine[1]
+            });
+            selectedPointsForLine = [];
+            saveHistory();
+          }
+        } else if (mode === 'segment') {
+          selectedPointsForSegment.push(clickedPointIndex);
+          if (selectedPointsForSegment.length === 2) {
+            segments.push({
+              p1Index: selectedPointsForSegment[0],
+              p2Index: selectedPointsForSegment[1]
+            });
+            selectedPointsForSegment = [];
+            saveHistory();
+          }
+        }
+        draw();
+      }
+    }
+  });
+
+  function updateModeButtons(){
+    btnAddPoint.setAttribute('aria-pressed', mode==='point'?'true':'false');
+    btnAddLine.setAttribute('aria-pressed', mode==='line'?'true':'false');
+    btnAddCircle.setAttribute('aria-pressed', mode==='circle'?'true':'false');
+    btnAddPolygon.setAttribute('aria-pressed', mode==='polygon'?'true':'false');
+    btnAddSegment.setAttribute('aria-pressed', mode==='segment'?'true':'false');
+  }
+
+  function updateSelectionInfo(text){
+    selectionInfo.textContent = text;
+  }
+
+  saveHistory();
+  updateModeButtons();
+  draw();
+})();
+</script>
+</body>
+</html>
+
+
+```
