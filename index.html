@@ -21,12 +21,25 @@
 
   header {
     background: #27293d;
-    padding: 0.75em 1em;
+    padding: 1em 1.5em;
     text-align: center;
     font-weight: 700;
-    font-size: 1.5rem;
-    user-select:none;
+    font-size: 2rem;
+    user-select: none;
     border-bottom: 2px solid #444661;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+
+  .logo {
+    width: 160px;
+    height: 100px;
+    position: absolute;
+    left: 20px;
+    top: 50%;
+    transform: translateY(-50%);
   }
 
   main {
@@ -216,7 +229,10 @@
 </style>
 </head>
 <body>
-<header>MiniGeo Advanced: Interactive Geometry & Function Plotter</header>
+<header>
+  <img src="logo.png" alt="MiniGeo Logo" class="logo">
+  MiniGeo Advanced: Interactive Geometry & Function Plotter
+</header>
 <main>
   <aside id="sidebar" aria-label="Controls">
     <h2>Geometry Tools</h2>
@@ -276,11 +292,15 @@
   const ctx = canvas.getContext('2d');
 
   function resizeCanvas() {
-    const dpr = window.devicePixelRatio || 1;
-    canvas.width = canvas.clientWidth * dpr;
-    canvas.height = canvas.clientHeight * dpr;
-    ctx.setTransform(1,0,0,1,0,0);
-    ctx.scale(dpr,dpr);
+    const dpr = Math.max(1, window.devicePixelRatio || 1);
+    const displayWidth = canvas.clientWidth;
+    const displayHeight = canvas.clientHeight;
+    
+    canvas.width = displayWidth * dpr;
+    canvas.height = displayHeight * dpr;
+    
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.scale(dpr, dpr);
   }
   window.addEventListener('resize', () => {
     resizeCanvas();
@@ -386,15 +406,28 @@
     btnRedo.disabled = historyIndex >= history.length -1;
   }
 
-  function toCanvasX(x) { return canvas.width/2/ (window.devicePixelRatio || 1) + (x + pan.x)*zoom; }
-  function toCanvasY(y) { return canvas.height/2/ (window.devicePixelRatio || 1) - (y + pan.y)*zoom; }
-  function toMathX(cx) { return (cx - canvas.width/2/ (window.devicePixelRatio || 1))/zoom - pan.x; }
-  function toMathY(cy) { return (canvas.height/2/ (window.devicePixelRatio || 1) - cy)/zoom - pan.y; }
+  function toCanvasX(x) { 
+    const dpr = Math.max(1, window.devicePixelRatio || 1);
+    return (canvas.width/(2 * dpr)) + (x + pan.x)*zoom; 
+  }
+  function toCanvasY(y) { 
+    const dpr = Math.max(1, window.devicePixelRatio || 1);
+    return (canvas.height/(2 * dpr)) - (y + pan.y)*zoom; 
+  }
+  function toMathX(cx) { 
+    const dpr = Math.max(1, window.devicePixelRatio || 1);
+    return (cx - canvas.width/(2 * dpr))/zoom - pan.x; 
+  }
+  function toMathY(cy) { 
+    const dpr = Math.max(1, window.devicePixelRatio || 1);
+    return (canvas.height/(2 * dpr) - cy)/zoom - pan.y; 
+  }
 
   function drawGrid(){
-    ctx.clearRect(0,0,canvas.width, canvas.height);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
     if(!gridToggle.checked) return;
 
+    const dpr = Math.max(1, window.devicePixelRatio || 1);
     const step = parseFloat(gridSizeInput.value) || 1;
     const gridColor = '#e0e0e0';
     const labelColor = '#333333';
